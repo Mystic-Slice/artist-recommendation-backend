@@ -3,7 +3,9 @@
 
 ## Technologies Used
 - Flask
-- Kindo AI (GPT 4o, WhiteRabitNeo)
+- Kindo AI (GPT-4o)
+- Qdrant
+- LlamaIndex
 - MongoDB
 - Firebase
 
