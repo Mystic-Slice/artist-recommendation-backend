@@ -64,6 +64,28 @@ def login():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
+    """
+    Handle file upload and media processing.
+
+    This endpoint accepts an image, text, or audio file as input, determines the type of media,
+    processes it based on the specified return type (audio or image), and returns a list of URLs
+    pointing to the processed media files along with artist details and the user ID.
+
+    Request Parameters:
+    - file (file): The media file to be uploaded. (Required)
+    - return_type (string): The desired return type. (Required)
+      Allowed values: 'audio', 'image'
+    - user_id (string): The user ID. (Required)
+
+    Response:
+    - user_id (string): The user ID provided in the request.
+    - return_type (string): The return type specified in the request.
+    - urls (array): A list of objects containing URLs and artist details.
+      - url (string): The URL of the processed media file.
+      - artist_name (string): The name of the artist.
+      - artist_email (string): The email of the artist.
+      - artist_portfolio_url (string): The portfolio URL of the artist.
+    """
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
 
@@ -74,6 +96,10 @@ def upload_file():
     return_type = request.form.get('return_type')
     if return_type not in ['audio', 'image']:
         return jsonify({'error': 'Invalid return type'}), 400
+
+    user_id = request.form.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'User ID is required'}), 400
 
     filename = secure_filename(file.filename)
     local_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
