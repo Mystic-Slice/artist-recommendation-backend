@@ -7,6 +7,7 @@ from converters import (
     get_generic_description,
     generate_tags,
 )
+from qdrant_handler import add_to_vectorstore, search_vectorstore
 from flask import Flask, request, jsonify, send_file
 from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
@@ -17,8 +18,13 @@ from werkzeug.utils import secure_filename
 import os
 import time
 import re
+import sys
 import threading
 import uuid
+import logging
+
+if os.getenv("SHOW_LOGS") == "True":
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 app = Flask(__name__)
 
@@ -88,7 +94,7 @@ def upload_file():
     - user_id (string): The user ID. (Required)
 
     Response:
-    - user_id (string): The user ID provided in the request.
+    - input_media_url (string): URL generated for the input media.
     - return_type (string): The return type specified in the request.
     - urls (array): A list of objects containing URLs and artist details.
       - url (string): The URL of the processed media file.
@@ -132,15 +138,15 @@ def upload_file():
     generic_description = get_generic_description(description)
     tags = generate_tags(generic_description)
 
-    add_to_vectorstore(
-        text=generic_description, tags=tags, type=media_type, url=input_media_url
-    )
-
     result = search_vectorstore(
         text=generic_description,
         type=return_type,
         tags=tags,
         collection_name=os.getenv("QDRANT_INDEX_NAME"),
+    )
+
+    add_to_vectorstore(
+        text=generic_description, tags=tags, type=media_type, url=input_media_url
     )
 
     # Clean up local file
@@ -185,9 +191,9 @@ def upload_file():
         response_data.append(
             {
                 "url": result[i].payload["url"],
-                "artist_name": 'Test Artist',
-                "artist_email": 'Test Email',
-                "artist_portfolio_url": 'http://test.com',
+                "artist_name": "Test Artist",
+                "artist_email": "Test Email",
+                "artist_portfolio_url": "http://test.com",
             }
         )
 
