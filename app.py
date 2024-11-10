@@ -57,10 +57,7 @@ def signup():
     user_data = {
         "username": data["username"],
         "name": data["name"],
-        "age": data["age"],
-        "language": data["language"],
         "password": hashed_password,
-        "working_professional": data["working_professional"],
     }
     mongo.db.users.insert_one(user_data)
     return jsonify(success=True, message="Signup successful"), 201
@@ -77,6 +74,20 @@ def login():
 
     return jsonify(success=False, message="Invalid credentials"), 401
 
+@app.route("/save", methods=["POST"])
+def save_file():
+    """
+    This endpoint accepts an image, text, or audio file as input, determines the type of media,
+    processes it based on the specified return type (audio or image), and returns a list of URLs
+    pointing to the processed media files along with artist details and the user ID.
+
+    Request Parameters:
+    - file (file): The media file to be uploaded. (Required)
+    - user_id (string): The user ID. (Required)
+
+    Response:
+    - input_media_url (string): URL generated for the input media.
+    """
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
