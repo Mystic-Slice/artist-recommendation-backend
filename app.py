@@ -90,10 +90,42 @@ def upload_file():
     # Clean up local file
     firebase_handler.delete_local_file(local_file_path)
 
-    file_urls = ['https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Great-Scenes-Mr-Beans-Holiday.jpg?alt=media&token=86455e64-fd28-4cdc-8840-edccdbf068d1',
-    'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Kill-Bill-Fight-Scene.jpg?alt=media&token=d36681dc-ff50-4621-a1ba-04f620d190fe',
-    'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/titanic_scene.webp?alt=media&token=72017555-2212-4009-a19e-ed044a4000b2']
-    return jsonify({'urls': file_urls})
+    # Example media data
+    medias = [
+        {
+            'name': 'Artist One',
+            'email': 'artist1@example.com',
+            'portfolio_url': 'https://portfolio.example.com/artist1',
+            'url':'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Great-Scenes-Mr-Beans-Holiday.jpg?alt=media&token=86455e64-fd28-4cdc-8840-edccdbf068d1'
+        },
+        {
+            'name': 'Artist Two',
+            'email': 'artist2@example.com',
+            'portfolio_url': 'https://portfolio.example.com/artist2',
+            'url':'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Kill-Bill-Fight-Scene.jpg?alt=media&token=d36681dc-ff50-4621-a1ba-04f620d190fe'
+        },
+        {
+            'name': 'Artist Three',
+            'email': 'artist3@example.com',
+            'portfolio_url': 'https://portfolio.example.com/artist3',
+            'url':'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/titanic_scene.webp?alt=media&token=72017555-2212-4009-a19e-ed044a4000b2'
+        }
+    ]
+
+    # Create the response data
+    response_data = []
+    for i, _ in enumerate(medias):
+        response_data.append({
+            'url': medias[i]['url'],
+            'artist_name': medias[i]['name'],
+            'artist_email': medias[i]['email'],
+            'artist_portfolio_url': medias[i]['portfolio_url']
+        })
+
+    return jsonify({
+        'return_type': return_type,
+        'urls': response_data
+    })
 
 
 if __name__ == "__main__":
