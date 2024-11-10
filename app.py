@@ -21,7 +21,7 @@ app.config["MONGO_URI"] = Config.MONGO_URI
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 firebase_cred_path = "artist-recommendation-key.json"
-firebase_bucket_name = "artist-recommendation.firebase.app"
+firebase_bucket_name = "artist-recommendation.firebasestorage.app"
 
 # Initialize KindoAPI
 mongo = PyMongo(app)
@@ -79,17 +79,20 @@ def upload_file():
     local_file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(local_file_path)
 
+    media_type = determine_media_type(local_file_path)
+    if not media_type:
+        return jsonify({'error': 'Unsupported media type'}), 400
+
+    
     # Upload the image to Firebase
-    public_url = firebase_handler.upload_to_firebase(file_name, local_file_path)
+    public_url = firebase_handler.upload_to_firebase(filename, local_file_path)
 
     # Clean up local file
     firebase_handler.delete_local_file(local_file_path)
 
-    media_type = determine_media_type(file_path)
-    if not media_type:
-        return jsonify({'error': 'Unsupported media type'}), 400
-
-    file_urls = []
+    file_urls = ['https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Great-Scenes-Mr-Beans-Holiday.jpg?alt=media&token=86455e64-fd28-4cdc-8840-edccdbf068d1',
+    'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Kill-Bill-Fight-Scene.jpg?alt=media&token=d36681dc-ff50-4621-a1ba-04f620d190fe',
+    'https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/titanic_scene.webp?alt=media&token=72017555-2212-4009-a19e-ed044a4000b2']
     return jsonify({'urls': file_urls})
 
 
