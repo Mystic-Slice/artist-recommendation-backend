@@ -151,7 +151,7 @@ def upload_file():
         })
 
     return jsonify({
-        "input_image_url": public_url,
+        "input_media_url": public_url,
         'return_type': return_type,
         'urls': response_data
     })
