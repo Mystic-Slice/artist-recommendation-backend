@@ -74,6 +74,26 @@ def login():
 
     return jsonify(success=False, message="Invalid credentials"), 401
 
+
+# Background task to process slides and save to MongoDB
+def process_save_file(local_file_path, filename, media_type):
+    # Upload the image to Firebase
+    input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
+    if media_type == "audio":
+        transcription = transcribe_audio(input_media_url)
+        description = describe_audio(transcription)
+    else:
+        transcription = transcribe_image(input_media_url)
+        description = describe_image(transcription)
+
+    generic_description = get_generic_description(description)
+    tags = generate_tags(generic_description)
+    add_to_vectorstore(
+        text=generic_description, tags=tags, type=media_type, url=input_media_url
+    )
+
+
+# Async endpoint, that initiates the processing and storing of image in the background
 @app.route("/save", methods=["POST"])
 def save_file():
     """
@@ -107,21 +127,12 @@ def save_file():
     if not media_type:
         return jsonify({"error": "Unsupported media type"}), 400
 
-    # Upload the image to Firebase
-    input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
-    if media_type == "audio":
-        transcription = transcribe_audio(input_media_url)
-        description = describe_audio(transcription)
-    else:
-        transcription = transcribe_image(input_media_url)
-        description = describe_image(transcription)
-
-    generic_description = get_generic_description(description)
-    tags = generate_tags(generic_description)
-    add_to_vectorstore(
-        text=generic_description, tags=tags, type=media_type, url=input_media_url
-    )
+    # Start background processing of slides
+    threading.Thread(
+        target=process_save_file, args=(local_file_path, filename, media_type)
+    ).start()
     return jsonify({}), 200
+
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -133,7 +144,8 @@ def upload_file():
     pointing to the processed media files along with artist details and the user ID.
 
     Request Parameters:
-    - file (file): The media file to be uploaded. (Required)
+    - file (file): The media file to be uploaded. (File or Text)
+    - text(string): Input String (File or text)
     - return_type (string): The desired return type. (Required)
       Allowed values: 'audio', 'image'
     - user_id (string): The user ID. (Required)
@@ -147,12 +159,12 @@ def upload_file():
       - artist_email (string): The email of the artist.
       - artist_portfolio_url (string): The portfolio URL of the artist.
     """
-    if "file" not in request.files:
-        return jsonify({"error": "No file part"}), 400
-
     file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
+    text = request.form.get("text")
+    input_media_url = None
+
+    if not file and not text:
+        return jsonify({"error": "No file or text provided"}), 400
 
     return_type = request.form.get("return_type")
     if return_type not in ["audio", "image"]:
@@ -162,24 +174,33 @@ def upload_file():
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
 
-    filename = secure_filename(file.filename)
-    local_file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-    file.save(local_file_path)
+    if file:
+        filename = secure_filename(file.filename)
+        local_file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+        file.save(local_file_path)
 
-    media_type = determine_media_type(local_file_path)
-    if not media_type:
-        return jsonify({"error": "Unsupported media type"}), 400
+        media_type = determine_media_type(local_file_path)
+        if not media_type:
+            return jsonify({"error": "Unsupported media type"}), 400
 
-    # Upload the image to Firebase
-    input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
+        # Upload the image to Firebase
+        input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
 
-    if media_type == "audio":
-        transcription = transcribe_audio(input_media_url)
-        description = describe_audio(transcription)
+        if media_type == "audio":
+            transcription = transcribe_audio(input_media_url)
+            description = describe_audio(transcription)
+        elif media_type == "image":
+            transcription = transcribe_image(input_media_url)
+            description = describe_image(transcription)
+        else:
+            with open(local_file_path, "r") as file:
+                description = file.read()
+        # Clean up local file
+        firebase_handler.delete_local_file(local_file_path)
     else:
-        transcription = transcribe_image(input_media_url)
-        description = describe_image(transcription)
+        description = text
 
+    print(f"Description: {description}")
     generic_description = get_generic_description(description)
     tags = generate_tags(generic_description)
 
@@ -189,43 +210,6 @@ def upload_file():
         tags=tags,
         collection_name=os.getenv("QDRANT_INDEX_NAME"),
     )
-
-    # Clean up local file
-    firebase_handler.delete_local_file(local_file_path)
-
-    # Example media data
-    # medias = [
-    #     {
-    #         "name": "Artist One",
-    #         "email": "artist1@example.com",
-    #         "portfolio_url": "https://portfolio.example.com/artist1",
-    #         "url": "https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Great-Scenes-Mr-Beans-Holiday.jpg?alt=media&token=86455e64-fd28-4cdc-8840-edccdbf068d1",
-    #     },
-    #     {
-    #         "name": "Artist Two",
-    #         "email": "artist2@example.com",
-    #         "portfolio_url": "https://portfolio.example.com/artist2",
-    #         "url": "https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/Kill-Bill-Fight-Scene.jpg?alt=media&token=d36681dc-ff50-4621-a1ba-04f620d190fe",
-    #     },
-    #     {
-    #         "name": "Artist Three",
-    #         "email": "artist3@example.com",
-    #         "portfolio_url": "https://portfolio.example.com/artist3",
-    #         "url": "https://firebasestorage.googleapis.com/v0/b/artist-recommendation.firebasestorage.app/o/titanic_scene.webp?alt=media&token=72017555-2212-4009-a19e-ed044a4000b2",
-    #     },
-    # ]
-
-    # Create the response data
-    # response_data = []
-    # for i, _ in enumerate(medias):
-    #     response_data.append(
-    #         {
-    #             "url": medias[i]["url"],
-    #             "artist_name": medias[i]["name"],
-    #             "artist_email": medias[i]["email"],
-    #             "artist_portfolio_url": medias[i]["portfolio_url"],
-    #         }
-    #     )
 
     response_data = []
     for i, _ in enumerate(result):
@@ -238,13 +222,14 @@ def upload_file():
             }
         )
 
-    return jsonify(
-        {
-            "input_media_url": input_media_url,
-            "return_type": return_type,
-            "urls": response_data,
-        }
-    )
+    response = {
+        "return_type": return_type,
+        "urls": response_data,
+    }
+    if input_media_url is not None:
+        response["input_media_url"] = input_media_url
+
+    return jsonify(response)
 
 
 if __name__ == "__main__":
