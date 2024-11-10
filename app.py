@@ -243,10 +243,10 @@ def upload_file():
         response_data.append(
             {
                 "url": result[i].payload["url"],
-                "artist_name": user.name,
-                "artist_email": user.email,
-                "artist_portfolio_url": user.portfolio_url,
-                "title": user.title,
+                "artist_name": user.get('name'),
+                "artist_email": user.get('email'),
+                "artist_portfolio_url": user.get('portfolio_url'),
+                "title": user.get('title'),
             }
         )
 
