@@ -80,7 +80,7 @@ def process_save_file(local_file_path, filename, media_type):
     # Upload the image to Firebase
     input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
     if media_type == "audio":
-        transcription = transcribe_audio(input_media_url)
+        transcription = transcribe_audio(local_file_path)
         description = describe_audio(transcription)
     else:
         transcription = transcribe_image(input_media_url)
@@ -187,7 +187,7 @@ def upload_file():
         input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
 
         if media_type == "audio":
-            transcription = transcribe_audio(input_media_url)
+            transcription = transcribe_audio(local_file_path)
             description = describe_audio(transcription)
         elif media_type == "image":
             transcription = transcribe_image(input_media_url)
