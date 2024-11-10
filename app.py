@@ -76,9 +76,21 @@ def login():
 
 
 # Background task to process slides and save to MongoDB
-def process_save_file(local_file_path, filename, media_type):
+def process_save_file(
+    local_file_path, filename, media_type, artist_name, email, portfolio_url, title
+):
     # Upload the image to Firebase
     input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
+
+    metadata = {
+        "url": input_media_url,
+        "name": artist_name,
+        "email": email,
+        "portfolio_url": portfolio_url,
+        "title": title,
+    }
+
+    mongo.db.media.insert_one(metadata)
     if media_type == "audio":
         transcription = transcribe_audio(local_file_path)
         description = describe_audio(transcription)
@@ -119,6 +131,11 @@ def save_file():
     if not user_id:
         return jsonify({"error": "User ID is required"}), 400
 
+    artist_name = request.form.get("artist_name")
+    email = request.form.get("email")
+    portfolio_url = request.form.get("portfolio_url")
+    title = request.form.get("title")
+
     filename = secure_filename(file.filename)
     local_file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
     file.save(local_file_path)
@@ -129,7 +146,16 @@ def save_file():
 
     # Start background processing of slides
     threading.Thread(
-        target=process_save_file, args=(local_file_path, filename, media_type)
+        target=process_save_file,
+        args=(
+            local_file_path,
+            filename,
+            media_type,
+            artist_name,
+            email,
+            portfolio_url,
+            title,
+        ),
     ).start()
     return jsonify({}), 200
 
@@ -213,12 +239,14 @@ def upload_file():
 
     response_data = []
     for i, _ in enumerate(result):
+        user = mongo.db.media.find_one({"url": result[i].payload["url"]})
         response_data.append(
             {
                 "url": result[i].payload["url"],
-                "artist_name": "Test Artist",
-                "artist_email": "Test Email",
-                "artist_portfolio_url": "http://test.com",
+                "artist_name": user.name,
+                "artist_email": user.email,
+                "artist_portfolio_url": user.portfolio_url,
+                "title": user.title,
             }
         )
 
