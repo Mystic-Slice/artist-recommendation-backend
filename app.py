@@ -1,5 +1,6 @@
 from utility import determine_media_type
 from flask import Flask, request, jsonify, send_file
+from flask_cors import CORS
 from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
 from config import Config
@@ -13,6 +14,7 @@ import threading
 import uuid
 
 app = Flask(__name__)
+CORS(app)
 
 app.config['UPLOAD_FOLDER'] = './tmp'
 app.config["MONGO_URI"] = Config.MONGO_URI
@@ -149,6 +151,7 @@ def upload_file():
         })
 
     return jsonify({
+        "input_image_url": public_url,
         'return_type': return_type,
         'urls': response_data
     })
