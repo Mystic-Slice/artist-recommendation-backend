@@ -88,6 +88,40 @@ def save_file():
     Response:
     - input_media_url (string): URL generated for the input media.
     """
+    if "file" not in request.files:
+        return jsonify({"error": "No file part"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No selected file"}), 400
+
+    user_id = request.form.get("user_id")
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    filename = secure_filename(file.filename)
+    local_file_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    file.save(local_file_path)
+
+    media_type = determine_media_type(local_file_path)
+    if not media_type:
+        return jsonify({"error": "Unsupported media type"}), 400
+
+    # Upload the image to Firebase
+    input_media_url = firebase_handler.upload_to_firebase(filename, local_file_path)
+    if media_type == "audio":
+        transcription = transcribe_audio(input_media_url)
+        description = describe_audio(transcription)
+    else:
+        transcription = transcribe_image(input_media_url)
+        description = describe_image(transcription)
+
+    generic_description = get_generic_description(description)
+    tags = generate_tags(generic_description)
+    add_to_vectorstore(
+        text=generic_description, tags=tags, type=media_type, url=input_media_url
+    )
+    return jsonify({}), 200
 
 @app.route("/upload", methods=["POST"])
 def upload_file():
@@ -154,10 +188,6 @@ def upload_file():
         type=return_type,
         tags=tags,
         collection_name=os.getenv("QDRANT_INDEX_NAME"),
-    )
-
-    add_to_vectorstore(
-        text=generic_description, tags=tags, type=media_type, url=input_media_url
     )
 
     # Clean up local file
