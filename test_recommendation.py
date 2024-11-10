@@ -31,7 +31,6 @@ if os.getenv("SHOW_LOGS") == "True":
 #     print("-------------------------------------------------")
 #     break
 
-# image_url = "https://cdn.britannica.com/61/93061-050-99147DCE/Statue-of-Liberty-Island-New-York-Bay.jpg"
 # image_url = "https://i.pinimg.com/736x/5f/e1/1e/5fe11e98bac3c740ac5625ab0f359aff.jpg"
 
 # transcription = transcribe_image(image_url)
@@ -78,3 +77,12 @@ if os.getenv("SHOW_LOGS") == "True":
 # )
 
 # print(result)
+
+## Audio
+# Audio -> transcribe_audio -> describe_audio -> generic description + generate tags -> add to vectorstore (text, type, tags, url)
+
+## Image
+# Image -> transcribe_image -> describe_image -> generic description + generate tags -> add to vectorstore (text, type, tags, url)
+
+# Search
+# Search -> search_vectorstore (text, type, tags, url) -> results
