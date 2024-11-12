@@ -1,5 +1,5 @@
 from utility import determine_media_type
-from converters import (
+from artist_matching.converters import (
     transcribe_audio,
     transcribe_image,
     describe_audio,
@@ -7,7 +7,7 @@ from converters import (
     get_generic_description,
     generate_tags,
 )
-from qdrant_handler import add_to_vectorstore, search_vectorstore
+from artist_matching.qdrant_handler import add_to_vectorstore, search_vectorstore
 from flask import Flask, request, jsonify, send_file
 from flask_pymongo import PyMongo
 from flask_bcrypt import Bcrypt
