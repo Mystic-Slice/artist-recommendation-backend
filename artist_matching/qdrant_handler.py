@@ -67,9 +67,9 @@ def search_vectorstore(text, type, tags, collection_name):
         limit=5,
         query_filter= models.Filter(
             must=[
+                *tag_filter_conditions,
                 models.FieldCondition(key="type", match=models.MatchValue(value=type)),
             ],
-            should=tag_filter_conditions,
         ),
     )
 
